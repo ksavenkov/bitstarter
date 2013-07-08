@@ -50,7 +50,7 @@ var processFile = function(htmlfile, processChecks) {
 var processURL = function(url, processChecks) {
     //request the online document...
     rest.get(url).on('complete', function(result, response){
-        if (result instance of Error) {
+        if (result instanceof Error) {
             console.error('Error: ' + util.format(response.message));
             process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
         }
@@ -64,7 +64,7 @@ var loadChecks = function(checksfile) {
 };
 
 //function builder (parameterise function with tag file)
-var processChecks = function(checksfile)
+var processChecks = function(checksfile) {
     //define the actual function
     var fn_instance = function(html) {
         $ = cheerio.load(html);
@@ -75,23 +75,23 @@ var processChecks = function(checksfile)
             out[checks[ii]] = present;
         }
         printChecks(out);
+    }
     return fn_instance;
-}
+};
 
 var printChecks = function(text) {
     var checkJson = checkHtmlFile(program.file, program.checks, path);
     var outJson = JSON.stringify(checkJson, null, 4);
     console.log(outJson);
-}
+};
 
 //@html - either url or path to a file
 //@mode - either 'url' or 'file'
-var checkHtmlFile = function(path, checksfile, mode)
-
+var checkHtmlFile = function(path, checksfile, mode) {
     if (mode == 'file') {
-        processFile(path, processChecks(checksfile))
+        processFile(path, processChecks(checksfile));
     } else if (mode == 'url') {
-        processURL(path, processChecks(checksfile))
+        processURL(path, processChecks(checksfile));
     } else {
         console.log("Unknown mode: %s. Exiting.", mode);
         process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
@@ -107,7 +107,7 @@ var clone = function(fn) {
 if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists))
         .option('-u, --url <html_url>', 'URL of index.html')
         .parse(process.argv);
 
@@ -121,12 +121,12 @@ if(require.main == module) {
         var mode = 'url';
     //else write an error message and exit
     } else {
-        console.log("Neither file nor URL is set. Exiting.", instr);
+        console.log("Neither file nor URL is set. Exiting.");
         process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
     }
     
     checkHtmlFile(path, program.checks, mode); 
 
 } else {
-    exports.checkHtmlFile = checkHtmlFile;
+    exports.checkHtmlFile = checkHtmlFile; 
 }
