@@ -36,23 +36,66 @@ var assertFileExists = function(infile) {
     return instr;
 };
 
-var cheerioHtmlFile = function(htmlfile) {
-    return cheerio.load(fs.readFileSync(htmlfile));
+//check an html file given its path
+var processFile = function(htmlfile, processChecks) {
+    //start reading from file...
+    fs.readFile(htmlfile, function(err, data) {
+        if (err) throw err;
+        //...once done, proceed to checks
+        processChecks(html);
+    });
+};
+
+//check online html given its url
+var processURL = function(url, processChecks) {
+    //request the online document...
+    rest.get(url).on('complete', function(result, response){
+        if (result instance of Error) {
+            console.error('Error: ' + util.format(response.message));
+            process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
+        }
+        //...once done, proceed to checks
+        processChecks(result); 
+    });
 };
 
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
 };
 
-var checkHtmlFile = function(htmlfile, checksfile) {
-    $ = cheerioHtmlFile(htmlfile);
-    var checks = loadChecks(checksfile).sort();
-    var out = {};
-    for(var ii in checks) {
-        var present = $(checks[ii]).length > 0;
-        out[checks[ii]] = present;
+//function builder (parameterise function with tag file)
+var processChecks = function(checksfile)
+    //define the actual function
+    var fn_instance = function(html) {
+        $ = cheerio.load(html);
+        var checks = loadChecks(checksfile).sort();
+        var out = {};
+        for(var ii in checks) {
+            var present = $(checks[ii]).length > 0;
+            out[checks[ii]] = present;
+        }
+        printChecks(out);
+    return fn_instance;
+}
+
+var printChecks = function(text) {
+    var checkJson = checkHtmlFile(program.file, program.checks, path);
+    var outJson = JSON.stringify(checkJson, null, 4);
+    console.log(outJson);
+}
+
+//@html - either url or path to a file
+//@mode - either 'url' or 'file'
+var checkHtmlFile = function(path, checksfile, mode)
+
+    if (mode == 'file') {
+        processFile(path, processChecks(checksfile))
+    } else if (mode == 'url') {
+        processURL(path, processChecks(checksfile))
+    } else {
+        console.log("Unknown mode: %s. Exiting.", mode);
+        process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
     }
-    return out;
 };
 
 var clone = function(fn) {
@@ -65,10 +108,25 @@ if(require.main == module) {
     program
         .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
+        .option('-u, --url <html_url>', 'URL of index.html')
         .parse(process.argv);
-    var checkJson = checkHtmlFile(program.file, program.checks);
-    var outJson = JSON.stringify(checkJson, null, 4);
-    console.log(outJson);
+
+    //if file is set, read the file into variable
+    if (program.file) {
+        var path = program.file;
+        var mode = 'file';
+    //else if the url is set download the file and put it into the variable
+    } else if (program.url) {
+        var path = program.url;
+        var mode = 'url';
+    //else write an error message and exit
+    } else {
+        console.log("Neither file nor URL is set. Exiting.", instr);
+        process.exit(1); // http://nodejs.org/api/process.html#process_process_exit_code
+    }
+    
+    checkHtmlFile(path, program.checks, mode); 
+
 } else {
     exports.checkHtmlFile = checkHtmlFile;
 }
