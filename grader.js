@@ -38,16 +38,18 @@ var assertFileExists = function(infile) {
 
 //check an html file given its path
 var processFile = function(htmlfile, processChecks) {
+    console.log('Processing file: %s', htmlfile);
     //start reading from file...
     fs.readFile(htmlfile, function(err, data) {
         if (err) throw err;
         //...once done, proceed to checks
-        processChecks(html);
+        processChecks(data);
     });
 };
 
 //check online html given its url
 var processURL = function(url, processChecks) {
+    console.log('Processing URL: %s', url);
     //request the online document...
     rest.get(url).on('complete', function(result, response){
         if (result instanceof Error) {
@@ -67,6 +69,7 @@ var loadChecks = function(checksfile) {
 var processChecks = function(checksfile) {
     //define the actual function
     var fn_instance = function(html) {
+        console.log('Processing checks from %s (html length = %s)', checksfile, html.length);
         $ = cheerio.load(html);
         var checks = loadChecks(checksfile).sort();
         var out = {};
@@ -80,14 +83,15 @@ var processChecks = function(checksfile) {
 };
 
 var printChecks = function(text) {
-    var checkJson = checkHtmlFile(program.file, program.checks, path);
-    var outJson = JSON.stringify(checkJson, null, 4);
+    console.log('Printing results');
+    var outJson = JSON.stringify(text, null, 4);
     console.log(outJson);
 };
 
 //@html - either url or path to a file
 //@mode - either 'url' or 'file'
 var checkHtmlFile = function(path, checksfile, mode) {
+    console.log('Checking %s: %s against %s', mode, path, checksfile);
     if (mode == 'file') {
         processFile(path, processChecks(checksfile));
     } else if (mode == 'url') {
@@ -110,7 +114,7 @@ if(require.main == module) {
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists))
         .option('-u, --url <html_url>', 'URL of index.html')
         .parse(process.argv);
-
+    
     //if file is set, read the file into variable
     if (program.file) {
         var path = program.file;
